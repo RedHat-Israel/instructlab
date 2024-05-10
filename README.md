@@ -67,7 +67,7 @@ After you have added knowledge and skills to the taxonomy, you can perform the f
 1. Chat with the re-trained LLM to see the results.
 
 ```mermaid
-graph TD;
+graph LR;
   download-->chat
   chat[Chat with the LLM]-->add
   add[Add new knowledge\nor skill to taxonomy]-->generate[generate new\nsynthetic training data]
