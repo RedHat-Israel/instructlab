@@ -376,20 +376,12 @@ def linux_train(
 
     print("LINUX_TRAIN.PY: RUNNING INFERENCE ON THE OUTPUT MODEL")
 
-    for i, (d, assistant_old) in enumerate(zip(test_dataset, assistant_old_lst)):
-        output = model_generate(d["user"], **generate_kwargs)
-        assistant_new = output.split(response_template.strip())[-1].strip()
-        assistant_expected = d["assistant"]
-
-        print(f"\n===\ntest {i}\n===\n")
-        print("\n===\nuser\n===\n")
-        print(d["user"])
-        print("\n===\nassistant_old\n===\n")
-        print(assistant_old)
-        print("\n===\nassistant_new\n===\n")
-        print(assistant_new)
-        print("\n===\nassistant_expected\n===\n")
-        print(assistant_expected)
+    for (i, (d, pre)) in enumerate(zip(test_dataset, assistant_old_lst)):
+        print(f"### {i+1}: {d['user']}")
+        print(f"Pre-trainted:\n_{pre[:300]}..._\n")
+        print(f"Provided:\n{d['assistant']}\n")
+        print("Fine-tuned:")
+        print(model_generate(d["user"]).split(response_template.strip())[-1].strip(),"\n")
 
     print("LINUX_TRAIN.PY: MERGING ADAPTERS")
     model = trainer.model.merge_and_unload()
