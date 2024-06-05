@@ -157,6 +157,8 @@ def linux_train(
     print("LINUX_TRAIN.PY: TEST FILE IS: ", test_file)
 
     print(f"LINUX_TRAIN.PY: Using device '{device}'")
+    train_file = str(train_file)
+    test_file = str(test_file)
     if device.type == "cuda":
         # estimated by watching nvtop / radeontop during training
         min_vram = 11 if four_bit_quant else 17
