@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Standard
+from pathlib import Path
 import json
+import logging
 import os
 
 # Third Party
@@ -9,6 +11,11 @@ import click
 
 # First Party
 from instructlab import utils
+
+# Local
+from .. import configuration as cfg
+
+logger = logging.getLogger(__name__)
 
 
 @click.command()
@@ -18,6 +25,7 @@ from instructlab import utils
     default="./taxonomy_data",
     show_default=True,
 )
+# for macOS:
 @click.option(
     "--model-dir",
     help="Base directory where model is stored.",
@@ -30,9 +38,45 @@ from instructlab import utils
     default="auto",
     show_default=True,
 )
+# for Linux:
+@click.option(
+    "-m",
+    "--model",
+    default=cfg.DEFAULT_MODEL,
+    show_default=True,
+    help="Base model name to test on Linux",
+)
+@click.option(
+    "-t",
+    "--test_file",
+    help="Test data file",
+    type=click.Path(),
+)
+@click.option(
+    "--api-key",
+    type=click.STRING,
+    default=cfg.DEFAULT_API_KEY,  # Note: do not expose default API key
+    help="API key for API endpoint. [default: cfg.DEFAULT_API_KEY]",
+)
+@click.option(
+    "--model-family",
+    help="Force model family to use when picking a generation template",
+)
+@click.pass_context
 @utils.display_params
 # pylint: disable=function-redefined
-def test(data_dir, model_dir, adapter_file):
+def test(
+    ctx,
+    data_dir,
+    # for macOS:
+    model_dir,
+    adapter_file,
+    # for Linux:
+    model,  # pylint: disable=unused-argument
+    test_file,
+    api_key,  # pylint: disable=unused-argument
+    model_family,  # pylint: disable=unused-argument
+):
     """Runs basic test to ensure model correctness"""
     if utils.is_macos_with_m_chip():
         # pylint: disable=C0415
@@ -83,3 +127,36 @@ def test(data_dir, model_dir, adapter_file):
                     max_tokens=100,
                     prompt=prompt,
                 )
+    else:
+        logger.debug("")
+        # pylint: disable=import-outside-toplevel
+        # Local
+        from .linux_test import linux_test
+
+        if not test_file:
+            test_file = sorted(
+                Path(ctx.obj.config.generate.output_dir).glob("test_*"),
+                key=os.path.getmtime,
+                reverse=True,
+            )[0]
+        logger.debug("test_file=%s", test_file)
+        try:
+            res = linux_test(
+                ctx,
+                test_file,
+                models=[model, Path("models") / "ggml-model-f16.gguf"],
+                create_params={"max_tokens": 100},
+            )
+            for u in res.items():
+                # print in markdown format
+                print()
+                print("###", u)
+                for m in res[u].items():
+                    print()
+                    print(f"{m}: {res[u][m]}")
+                    print()
+        except Exception as exc:
+            click.secho(
+                f"Tesing models failed with the following error: {exc}", fg="red"
+            )
+            raise click.exceptions.Exit(1)
